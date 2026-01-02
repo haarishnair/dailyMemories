@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { DailyEntry } from '../db';
 import { CloudinaryService } from '../services/cloudinary';
-import { Loader2, CalendarHeart, ArrowUpDown } from 'lucide-react';
+import { Loader2, CalendarHeart, ArrowUpDown, X, RefreshCw } from 'lucide-react';
 
 interface TimelineViewProps {
     onQuickCapture?: () => void;
+    onEditEntry?: (date: string) => void;
 }
 
-export default function TimelineView({ onQuickCapture }: TimelineViewProps) {
+export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineViewProps) {
     const [entries, setEntries] = useState<DailyEntry[] | null>(null);
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [selectedEntry, setSelectedEntry] = useState<DailyEntry | null>(null);
 
     // Fetch from Cloudinary on mount
     useEffect(() => {
@@ -113,7 +115,11 @@ export default function TimelineView({ onQuickCapture }: TimelineViewProps) {
 
                         <div className="px-4 py-4 grid grid-cols-2 gap-3">
                             {groupedEntries[month].map(entry => (
-                                <div key={entry.id} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex flex-col gap-2 group">
+                                <div
+                                    key={entry.id}
+                                    className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex flex-col gap-2 group cursor-pointer active:scale-95 transition-all"
+                                    onClick={() => setSelectedEntry(entry)}
+                                >
                                     <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 relative">
                                         <img
                                             src={getImageUrl(entry)}
@@ -141,6 +147,48 @@ export default function TimelineView({ onQuickCapture }: TimelineViewProps) {
                 {/* Bottom Spacer for Nav */}
                 <div className="h-20" />
             </div>
+
+            {/* Detail Modal */}
+            {selectedEntry && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <button
+                        onClick={() => setSelectedEntry(null)}
+                        className="absolute top-4 right-4 text-white/50 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all z-50"
+                    >
+                        <X size={24} />
+                    </button>
+
+                    <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col items-center">
+                        <img
+                            src={getImageUrl(selectedEntry)}
+                            alt={selectedEntry.caption}
+                            className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                        />
+
+                        <div className="mt-6 w-full flex items-center justify-between px-4 text-white">
+                            <div>
+                                <h3 className="text-lg font-bold">
+                                    {new Date(selectedEntry.date).toLocaleDateString(undefined, { dateStyle: 'long' })}
+                                </h3>
+                                {selectedEntry.caption && (
+                                    <p className="text-white/80 text-sm mt-1">{selectedEntry.caption}</p>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    onEditEntry?.(selectedEntry.date);
+                                    setSelectedEntry(null);
+                                }}
+                                className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-semibold hover:bg-gray-200 active:scale-95 transition-all text-sm"
+                            >
+                                <RefreshCw size={16} />
+                                Replace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

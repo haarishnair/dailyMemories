@@ -76,7 +76,7 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 text-gray-900">
-        {activeTab === 'timeline' && <TimelineView onQuickCapture={handleQuickCapture} />}
+        {activeTab === 'timeline' && <TimelineView onQuickCapture={handleQuickCapture} onEditEntry={handleDateSelect} />}
         {activeTab === 'calendar' && <CalendarView onDateSelect={handleDateSelect} />}
         {activeTab === 'upload' && (
           <UploadView
