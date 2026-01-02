@@ -95,11 +95,11 @@ export default function HighlightView() {
                         className="flex-1 relative flex items-center justify-center"
                     >
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-3xl z-0">
-                            <img src={URL.createObjectURL(currentEntry.photoBlob)} className="w-full h-full object-cover opacity-50" />
+                            <img src={currentEntry.photoUrl || (currentEntry.photoBlob ? URL.createObjectURL(currentEntry.photoBlob) : '')} className="w-full h-full object-cover opacity-50" />
                         </div>
 
                         <img
-                            src={URL.createObjectURL(currentEntry.photoBlob)}
+                            src={currentEntry.photoUrl || (currentEntry.photoBlob ? URL.createObjectURL(currentEntry.photoBlob) : '')}
                             className="w-full max-h-screen object-contain z-10 relative shadow-2xl"
                         />
 

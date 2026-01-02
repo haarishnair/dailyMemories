@@ -40,7 +40,7 @@ export default function BackupView() {
 
             for (let i = 0; i < total; i++) {
                 const entry = entries[i];
-                if (entry.id && imgFolder) {
+                if (entry.id && imgFolder && entry.photoBlob) {
                     imgFolder.file(`image_${entry.id}.jpg`, entry.photoBlob);
                     // Update progress
                     setProgress(Math.round(((i + 1) / total) * 100));
