@@ -8,10 +8,11 @@ import clsx from 'clsx';
 interface UploadViewProps {
     onUploadComplete: () => void;
     initialDate?: string;
+    initialFile?: File;
     autoOpen?: boolean;
 }
 
-export default function UploadView({ onUploadComplete, initialDate, autoOpen }: UploadViewProps) {
+export default function UploadView({ onUploadComplete, initialDate, initialFile, autoOpen }: UploadViewProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const [file, setFile] = useState<File | null>(null);
@@ -19,12 +20,20 @@ export default function UploadView({ onUploadComplete, initialDate, autoOpen }: 
     const [caption, setCaption] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Auto-open camera if requested
+    // Initialize with provided file if any
     useEffect(() => {
-        if (autoOpen && fileInputRef.current && !file) {
+        if (initialFile) {
+            setFile(initialFile);
+            setPreview(URL.createObjectURL(initialFile));
+        }
+    }, [initialFile]);
+
+    // Auto-open camera if requested AND NO FILE YET
+    useEffect(() => {
+        if (autoOpen && fileInputRef.current && !file && !initialFile) {
             fileInputRef.current.click();
         }
-    }, [autoOpen, file]);
+    }, [autoOpen, file, initialFile]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {

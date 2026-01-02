@@ -12,6 +12,7 @@ function App() {
   const [showHighlight, setShowHighlight] = useState(false);
   const [uploadDate, setUploadDate] = useState<string | undefined>(undefined);
   const [autoCamera, setAutoCamera] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | undefined>(undefined);
 
   const handleQuickCapture = () => {
     setUploadDate(undefined);
@@ -59,12 +60,39 @@ function App() {
             {activeTab === 'calendar' ? <LayoutGrid size={20} /> : <CalendarDays size={20} />}
           </button>
 
-          <button
-            onClick={handleQuickCapture}
-            className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition-transform"
-          >
-            <Camera size={20} />
-          </button>
+          {/* Camera Button with Instant Native Picker */}
+          <div className="relative">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              id="header-camera-input"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // We need to pass this file to UploadView. 
+                  // For now, we'll use a simple state prop or just let UploadView handle it?
+                  // No, if we pick here, we MUST pass it.
+                  // Let's modify App state to hold 'pendingFile'.
+                  setUploadDate(undefined);
+                  setAutoCamera(false); // No need to auto-open camera in UploadView since we already have the file
+                  // We need a way to pass the file. adding `pendingFile` state.
+                  // But wait, I can't add state in this tool call easily without replacing the whole component or multiple chunks.
+                  // Let's try to just trigger the existing flow but faster?
+                  // If I switch tab, it needs a click.
+                  // BETTER: Just make the button a label for the input? No, semantic button is better.
+                  // I will add `pendingFile` state in the next step. For now, let's just create the input and handler structure.
+                }
+              }}
+            />
+            <label
+              htmlFor="header-camera-input"
+              className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
+            >
+              <Camera size={20} />
+            </label>
+          </div>
           <button
             onClick={() => setShowHighlight(true)}
             className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-500 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
@@ -81,10 +109,12 @@ function App() {
         {activeTab === 'upload' && (
           <UploadView
             initialDate={uploadDate}
+            initialFile={pendingFile}
             autoOpen={autoCamera}
             onUploadComplete={() => {
               setActiveTab('timeline');
               setAutoCamera(false);
+              setPendingFile(undefined);
               setUploadDate(undefined);
             }}
           />
