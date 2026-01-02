@@ -16,6 +16,8 @@ export const CloudinaryService = {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', UPLOAD_PRESET);
+        // Use deterministic ID to allow overwriting (replacing) photos for the same date
+        formData.append('public_id', `memory_${date}`);
 
         // Add Tags: "daily_memory" for filtering, "date_YYYY-MM-DD" for querying specific days
         const tags = ['daily_memory', `date_${date}`];
