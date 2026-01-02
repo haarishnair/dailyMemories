@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { DailyEntry } from '../db';
 import { CloudinaryService } from '../services/cloudinary';
-import { Loader2, CalendarHeart, ArrowUpDown, X, RefreshCw } from 'lucide-react';
+import { Loader2, CalendarHeart, ArrowUpDown, X, RefreshCw, Trash2 } from 'lucide-react';
 
 interface TimelineViewProps {
     onQuickCapture?: () => void;
@@ -17,7 +17,17 @@ export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineVi
     useEffect(() => {
         CloudinaryService.fetchMemories()
             .then(data => {
-                setEntries(data);
+                // Deduplicate entries based on date, keeping the one with the latest timestamp
+                const uniqueEntriesMap = new Map<string, DailyEntry>();
+
+                data.forEach(entry => {
+                    const existing = uniqueEntriesMap.get(entry.date);
+                    if (!existing || entry.timestamp > existing.timestamp) {
+                        uniqueEntriesMap.set(entry.date, entry);
+                    }
+                });
+
+                setEntries(Array.from(uniqueEntriesMap.values()));
             })
             .catch(() => setEntries([]));
     }, []);
@@ -175,16 +185,36 @@ export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineVi
                                 )}
                             </div>
 
-                            <button
-                                onClick={() => {
-                                    onEditEntry?.(selectedEntry.date);
-                                    setSelectedEntry(null);
-                                }}
-                                className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-semibold hover:bg-gray-200 active:scale-95 transition-all text-sm"
-                            >
-                                <RefreshCw size={16} />
-                                Replace
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm('Are you sure you want to delete this memory? This cannot be undone.')) return;
+                                        if (selectedEntry.id) {
+                                            try {
+                                                await CloudinaryService.deleteImage(selectedEntry.id as string);
+                                                setEntries(prev => prev ? prev.filter(e => e.id !== selectedEntry.id) : null);
+                                                setSelectedEntry(null);
+                                            } catch (error) {
+                                                alert('Failed to delete image. Check console/network.');
+                                            }
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl font-semibold hover:bg-red-500/20 active:scale-95 transition-all text-sm backdrop-blur-md"
+                                >
+                                    <Trash2 size={16} />
+                                    Delete
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        onEditEntry?.(selectedEntry.date);
+                                        setSelectedEntry(null);
+                                    }}
+                                    className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-semibold hover:bg-gray-200 active:scale-95 transition-all text-sm"
+                                >
+                                    <RefreshCw size={16} />
+                                    Replace
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

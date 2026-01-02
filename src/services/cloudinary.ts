@@ -2,13 +2,57 @@ import axios from 'axios';
 import type { DailyEntry } from '../db'; // We'll keep the interface but decouple from Dexie
 
 // TODO: Replace with your actual Cloudinary details
-export const CLOUD_NAME = 'dip9ilgql';
-export const UPLOAD_PRESET = 'daily-memories'; // Must be "Unsigned"
+export const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dip9ilgql';
+export const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'daily-memories';
+export const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
+export const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET;
 
 const BASE_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+const DESTROY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`;
 const LIST_URL = `https://res.cloudinary.com/${CLOUD_NAME}/image/list`;
 
+async function generateSignature(params: Record<string, string>, apiSecret: string): Promise<string> {
+    const sortedKeys = Object.keys(params).sort();
+    const stringToSign = sortedKeys.map(key => `${key}=${params[key]}`).join('&') + apiSecret;
+
+    // Hash with SHA-1 using Web Crypto API
+    const msgBuffer = new TextEncoder().encode(stringToSign);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const CloudinaryService = {
+    /**
+     * Deletes an image from Cloudinary using a signed request.
+     */
+    async deleteImage(publicId: string): Promise<void> {
+        if (!API_KEY || !API_SECRET) {
+            throw new Error("Missing Cloudinary API Key or Secret in .env");
+        }
+
+        const timestamp = Math.round(new Date().getTime() / 1000).toString();
+        const params = {
+            public_id: publicId,
+            timestamp: timestamp
+        };
+
+        const signature = await generateSignature(params, API_SECRET);
+
+        const formData = new FormData();
+        formData.append('public_id', publicId);
+        formData.append('timestamp', timestamp);
+        formData.append('api_key', API_KEY);
+        formData.append('signature', signature);
+
+        try {
+            await axios.post(DESTROY_URL, formData);
+        } catch (error) {
+            console.error("Cloudinary Delete Error:", error);
+            throw error;
+        }
+    },
+
     /**
      * Uploads an image to Cloudinary with metadata tags.
      */
@@ -16,11 +60,17 @@ export const CloudinaryService = {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', UPLOAD_PRESET);
-        // Use deterministic ID to allow overwriting (replacing) photos for the same date
-        formData.append('public_id', `memory_${date}`);
+
+        // Extract year for folder organization
+        const year = date.split('-')[0];
+
+        // Use deterministic ID with year folder to allow overwriting (replacing) photos for the same date
+        // Path: <preset_folder>/<year>/memory_<date>
+        // Note: The preset usually defines the root folder. Adding "/" here creates a subfolder.
+        formData.append('public_id', `${year}/memory_${date}`);
 
         // Add Tags: "daily_memory" for filtering, "date_YYYY-MM-DD" for querying specific days
-        const tags = ['daily_memory', `date_${date}`];
+        const tags = ['daily_memory', `date_${date}`, `year_${year}`];
         formData.append('tags', tags.join(','));
 
         // Add Context: Store caption and date in metadata

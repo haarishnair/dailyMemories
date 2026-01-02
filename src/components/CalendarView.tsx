@@ -15,7 +15,19 @@ export default function CalendarView({ onDateSelect }: CalendarViewProps) {
 
     // Fetch entries
     useEffect(() => {
-        CloudinaryService.fetchMemories().then(setEntries).catch(() => setEntries([]));
+        CloudinaryService.fetchMemories()
+            .then(data => {
+                // Deduplicate for calendar as well
+                const uniqueEntriesMap = new Map<string, DailyEntry>();
+                data.forEach(entry => {
+                    const existing = uniqueEntriesMap.get(entry.date);
+                    if (!existing || entry.timestamp > existing.timestamp) {
+                        uniqueEntriesMap.set(entry.date, entry);
+                    }
+                });
+                setEntries(Array.from(uniqueEntriesMap.values()));
+            })
+            .catch(() => setEntries([]));
     }, []);
 
     const daysInMonth = eachDayOfInterval({
