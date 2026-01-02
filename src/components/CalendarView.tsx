@@ -167,7 +167,9 @@ export default function CalendarView({ onDateSelect }: CalendarViewProps) {
                                 );
                             })}
                         </div>
-                    </div>
+                    </>
+                )}
             </div>
-            );
+        </div>
+    );
 }
