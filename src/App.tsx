@@ -1,15 +1,29 @@
 import { useState } from 'react';
-import { LayoutGrid, PlusCircle, Settings, Sparkles } from 'lucide-react';
+import { LayoutGrid, PlusCircle, Settings, Sparkles, Camera, CalendarDays } from 'lucide-react';
 import clsx from 'clsx';
-// components will be imported here later
 import UploadView from './components/UploadView';
 import TimelineView from './components/TimelineView';
 import BackupView from './components/BackupView';
 import HighlightView from './components/HighlightView';
+import CalendarView from './components/CalendarView';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'upload' | 'settings'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'calendar' | 'upload' | 'settings'>('timeline');
   const [showHighlight, setShowHighlight] = useState(false);
+  const [uploadDate, setUploadDate] = useState<string | undefined>(undefined);
+  const [autoCamera, setAutoCamera] = useState(false);
+
+  const handleQuickCapture = () => {
+    setUploadDate(undefined);
+    setAutoCamera(true);
+    setActiveTab('upload');
+  };
+
+  const handleDateSelect = (date: string) => {
+    setUploadDate(date);
+    setAutoCamera(true);
+    setActiveTab('upload');
+  };
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-white shadow-xl overflow-hidden relative">
@@ -19,29 +33,11 @@ function App() {
           <div className="relative h-full">
             <button
               onClick={() => setShowHighlight(false)}
-              className="absolute top-4 right-4 z-[60] text-white p-2"
-            >
-              {/* Close button handled inside component for now, or here. 
-                 HighlightView has its own close but we controlled it with isPlaying.
-                 Let's wrap HighlightView to handle close.
-              */}
-            </button>
-            <HighlightView />
-            {/* Hack: The HighlightView has a close button that we need to wire up to setShowHighlight(false) 
-                 but currently HighlightView manages its own "isPlaying" state.
-                 Refactoring HighlightView to accept onClosing prop would be cleaner, 
-                 but for now let's just mount it. 
-                 Actually HighlightView returns a full screen div only when playing?
-                 Let's check HighlightView.tsx content.
-                 It renders "Play Highlights" screen initially.
-                 So we can just show it.
-              */}
-            <button
-              onClick={() => setShowHighlight(false)}
               className="absolute top-4 left-4 z-[60] text-white bg-black/20 p-2 rounded-full backdrop-blur-md"
             >
               ✕ Close
             </button>
+            <HighlightView />
           </div>
         </div>
       )}
@@ -51,20 +47,51 @@ function App() {
         <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
           Daily Memories
         </h1>
-        <button
-          onClick={() => setShowHighlight(true)}
-          className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-500 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
-        >
-          <Sparkles size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Calendar Toggle */}
+          <button
+            onClick={() => setActiveTab(activeTab === 'timeline' ? 'calendar' : 'timeline')}
+            className={clsx(
+              "w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all",
+              activeTab === 'calendar' ? "bg-purple-100 text-purple-600" : "bg-gray-100 text-gray-500"
+            )}
+          >
+            {activeTab === 'calendar' ? <LayoutGrid size={20} /> : <CalendarDays size={20} />}
+          </button>
+
+          <button
+            onClick={handleQuickCapture}
+            className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition-transform"
+          >
+            <Camera size={20} />
+          </button>
+          <button
+            onClick={() => setShowHighlight(true)}
+            className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-500 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+          >
+            <Sparkles size={20} />
+          </button>
+        </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 text-gray-900">
-        {activeTab === 'timeline' && <TimelineView />}
-        {activeTab === 'upload' && <UploadView onUploadComplete={() => setActiveTab('timeline')} />}
+        {activeTab === 'timeline' && <TimelineView onQuickCapture={handleQuickCapture} />}
+        {activeTab === 'calendar' && <CalendarView onDateSelect={handleDateSelect} />}
+        {activeTab === 'upload' && (
+          <UploadView
+            initialDate={uploadDate}
+            autoOpen={autoCamera}
+            onUploadComplete={() => {
+              setActiveTab('timeline');
+              setAutoCamera(false);
+              setUploadDate(undefined);
+            }}
+          />
+        )}
         {activeTab === 'settings' && <BackupView />}
       </main>
+
 
       {/* Bottom Navigation */}
       <nav className="bg-white border-t border-gray-100 px-6 py-3 flex justify-between items-center z-20 pb-safe">

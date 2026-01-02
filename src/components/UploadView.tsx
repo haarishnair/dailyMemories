@@ -1,20 +1,30 @@
-import { useState, useRef } from 'react';
-import imageCompression from 'browser-image-compression';
+import React, { useState, useRef, useEffect } from 'react';
+
 import { Upload, X, Loader2, Camera, Calendar } from 'lucide-react';
-import { db } from '../db';
+
+import { CloudinaryService } from '../services/cloudinary';
 import clsx from 'clsx';
 
 interface UploadViewProps {
     onUploadComplete: () => void;
+    initialDate?: string;
+    autoOpen?: boolean;
 }
 
-export default function UploadView({ onUploadComplete }: UploadViewProps) {
+export default function UploadView({ onUploadComplete, initialDate, autoOpen }: UploadViewProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const [file, setFile] = useState<File | null>(null);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
     const [caption, setCaption] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-open camera if requested
+    useEffect(() => {
+        if (autoOpen && fileInputRef.current && !file) {
+            fileInputRef.current.click();
+        }
+    }, [autoOpen, file]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -29,26 +39,13 @@ export default function UploadView({ onUploadComplete }: UploadViewProps) {
 
         setIsUploading(true);
         try {
-            // Compress image
-            const options = {
-                maxSizeMB: 1, // Store max 1MB per photo to save space
-                maxWidthOrHeight: 1920,
-                useWebWorker: true,
-            };
-            const compressedFile = await imageCompression(file, options);
-
-            // Save to IndexedDB
-            await db.dailyEntries.add({
-                date: date,
-                photoBlob: compressedFile,
-                caption: caption,
-                timestamp: Date.now(),
-            });
+            // Upload to Cloudinary
+            await CloudinaryService.uploadImage(file, date, caption);
 
             onUploadComplete();
         } catch (error) {
             console.error("Error saving entry:", error);
-            alert("Failed to save memory. Please try again.");
+            alert("Failed to save memory. Check console/network.");
         } finally {
             setIsUploading(false);
         }

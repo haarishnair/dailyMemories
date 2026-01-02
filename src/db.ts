@@ -1,9 +1,10 @@
 import Dexie, { type Table } from 'dexie';
 
 export interface DailyEntry {
-    id?: number;
+    id?: number | string; // Support string IDs for Cloudinary
     date: string; // YYYY-MM-DD
-    photoBlob: Blob;
+    photoBlob?: Blob; // Optional now
+    photoUrl?: string; // New field for remote URL
     caption?: string;
     timestamp: number;
 }
