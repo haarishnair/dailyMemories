@@ -4,6 +4,7 @@ import { Upload, X, Loader2, Camera, Calendar } from 'lucide-react';
 
 import { CloudinaryService } from '../services/cloudinary';
 import clsx from 'clsx';
+import ImageCropper from './ImageCropper';
 
 interface UploadViewProps {
     onUploadComplete: () => void;
@@ -14,8 +15,10 @@ interface UploadViewProps {
 
 export default function UploadView({ onUploadComplete, initialDate, initialFile, autoOpen }: UploadViewProps) {
     const [isUploading, setIsUploading] = useState(false);
+    const [isCropping, setIsCropping] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const [file, setFile] = useState<File | null>(null);
+
     const [date, setDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
     const [caption, setCaption] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +28,7 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
         if (initialFile) {
             setFile(initialFile);
             setPreview(URL.createObjectURL(initialFile));
+            setIsCropping(true);
         }
     }, [initialFile]);
 
@@ -40,6 +44,7 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
             const selectedFile = e.target.files[0];
             setFile(selectedFile);
             setPreview(URL.createObjectURL(selectedFile));
+            setIsCropping(true);
         }
     };
 
@@ -64,7 +69,23 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
         setFile(null);
         setPreview(null);
         setCaption('');
+        setIsCropping(false);
     };
+
+    if (isCropping && file && preview) {
+        return (
+            <ImageCropper
+                imageSrc={preview}
+                onCancel={reset}
+                onCropComplete={(croppedBlob) => {
+                    const croppedFile = new File([croppedBlob], file.name, { type: file.type });
+                    setFile(croppedFile);
+                    setPreview(URL.createObjectURL(croppedFile));
+                    setIsCropping(false);
+                }}
+            />
+        );
+    }
 
     if (!preview) {
         return (

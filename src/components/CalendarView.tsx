@@ -122,6 +122,10 @@ export default function CalendarView({ onDateSelect }: CalendarViewProps) {
                         </div>
                         <div className="grid grid-cols-7 gap-2 auto-rows-fr">
 
+
+                            {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
+                                <div key={`empty-${i}`} />
+                            ))}
                             {daysInMonth.map((day) => {
                                 const dateStr = format(day, 'yyyy-MM-dd');
                                 const entry = entries.find(e => e.date === dateStr);
