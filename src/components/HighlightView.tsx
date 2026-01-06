@@ -1,28 +1,34 @@
 import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type DailyEntry } from '../db';
+import { CloudinaryService } from '../services/cloudinary';
+import { type DailyEntry } from '../db';
 import { Play, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function HighlightView() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [entries, setEntries] = useState<DailyEntry[] | null>(null);
 
-    // Get all entries
-    const entries = useLiveQuery(
-        () => db.dailyEntries.orderBy('date').toArray()
-    );
+    // Fetch entries from Cloudinary
+    useEffect(() => {
+        CloudinaryService.fetchMemories()
+            .then(data => setEntries(data))
+            .catch(err => {
+                console.error("Failed to load memories for highlight:", err);
+                setEntries([]);
+            });
+    }, []);
 
     const [yearReview, setYearReview] = useState<DailyEntry[]>([]);
 
     // Filter for random selection/top entries when entries load
     // For MVP, just random 10 pictures
     useEffect(() => {
-        if (entries && entries.length > 0 && !isPlaying) {
+        if (entries && entries.length > 0 && !isPlaying && yearReview.length === 0) {
             const shuffled = [...entries].sort(() => 0.5 - Math.random());
             setYearReview(shuffled.slice(0, 10));
         }
-    }, [entries, isPlaying]);
+    }, [entries, isPlaying, yearReview.length]);
 
     useEffect(() => {
         let interval: any;

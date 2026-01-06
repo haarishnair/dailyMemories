@@ -83,8 +83,8 @@ export default function CalendarView({ onDateSelect }: CalendarViewProps) {
                     <div className="grid grid-cols-3 gap-4">
                         {months.map(monthDate => {
                             const isFuture = isAfter(monthDate, new Date()) && monthDate.getMonth() !== new Date().getMonth();
-                            // Check if month has entries
-                            const hasEntries = entries.some(e => {
+                            // Find a representative entry for the month
+                            const monthEntry = entries.find(e => {
                                 const d = new Date(e.date);
                                 return d.getFullYear() === monthDate.getFullYear() && d.getMonth() === monthDate.getMonth();
                             });
@@ -98,17 +98,31 @@ export default function CalendarView({ onDateSelect }: CalendarViewProps) {
                                         setViewMode('month');
                                     }}
                                     className={clsx(
-                                        "aspect-square rounded-2xl flex flex-col items-center justify-center p-2 transition-all",
+                                        "aspect-square rounded-2xl flex flex-col items-center justify-center p-2 transition-all relative overflow-hidden",
                                         isFuture
                                             ? "opacity-30"
-                                            : "hover:bg-purple-50 active:scale-95",
-                                        hasEntries ? "bg-purple-50 border border-purple-100" : "bg-gray-50",
+                                            : "hover:scale-95 active:scale-90",
+                                        !monthEntry && "bg-gray-50 hover:bg-purple-50",
                                         monthDate.getMonth() === new Date().getMonth() && monthDate.getFullYear() === new Date().getFullYear() && "ring-2 ring-purple-500"
                                     )}
                                 >
-                                    <span className={clsx("text-sm font-bold", hasEntries ? "text-purple-700" : "text-gray-600")}>
-                                        {format(monthDate, 'MMM')}
-                                    </span>
+                                    {monthEntry ? (
+                                        <>
+                                            <img
+                                                src={monthEntry.photoUrl || (monthEntry.photoBlob ? URL.createObjectURL(monthEntry.photoBlob) : '')}
+                                                className="absolute inset-0 w-full h-full object-cover"
+                                                alt={`Highlight for ${format(monthDate, 'MMM')}`}
+                                            />
+                                            <div className="absolute inset-0 bg-black/30" />
+                                            <span className="text-lg font-bold text-white relative z-10 drop-shadow-md">
+                                                {format(monthDate, 'MMM')}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span className="text-sm font-bold text-gray-600">
+                                            {format(monthDate, 'MMM')}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
