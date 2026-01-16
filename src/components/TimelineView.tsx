@@ -5,7 +5,7 @@ import { Loader2, CalendarHeart, ArrowUpDown, X, RefreshCw, Trash2 } from 'lucid
 
 interface TimelineViewProps {
     onQuickCapture?: () => void;
-    onEditEntry?: (date: string) => void;
+    onEditEntry?: (entryOrDate: string | DailyEntry) => void;
 }
 
 export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineViewProps) {
@@ -17,17 +17,10 @@ export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineVi
     useEffect(() => {
         CloudinaryService.fetchMemories()
             .then(data => {
-                // Deduplicate entries based on date, keeping the one with the latest timestamp
-                const uniqueEntriesMap = new Map<string, DailyEntry>();
-
-                data.forEach(entry => {
-                    const existing = uniqueEntriesMap.get(entry.date);
-                    if (!existing || entry.timestamp > existing.timestamp) {
-                        uniqueEntriesMap.set(entry.date, entry);
-                    }
-                });
-
-                setEntries(Array.from(uniqueEntriesMap.values()));
+                // Deduplicate entries based on date? NO, we now support multiple photos per day!
+                // We just sort them by timestamp in the render logic or here.
+                // Let's just set all entries.
+                setEntries(data);
             })
             .catch(() => setEntries([]));
     }, []);
@@ -59,9 +52,18 @@ export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineVi
 
     // Sort entries based on state
     const sortedEntries = entries?.sort((a, b) => {
-        return sortOrder === 'desc'
-            ? b.date.localeCompare(a.date)
-            : a.date.localeCompare(b.date);
+        if (sortOrder === 'desc') {
+            // Compare date first
+            const dateById = b.date.localeCompare(a.date);
+            if (dateById !== 0) return dateById;
+            // If same date, newest timestamp first
+            return b.timestamp - a.timestamp;
+        } else {
+            const dateById = a.date.localeCompare(b.date);
+            if (dateById !== 0) return dateById;
+            // If same date, oldest timestamp first
+            return a.timestamp - b.timestamp;
+        }
     }) || [];
 
     // Group entries by Month Year (preserving sort order)
@@ -206,7 +208,7 @@ export default function TimelineView({ onQuickCapture, onEditEntry }: TimelineVi
                                 </button>
                                 <button
                                     onClick={() => {
-                                        onEditEntry?.(selectedEntry.date);
+                                        onEditEntry?.(selectedEntry);
                                         setSelectedEntry(null);
                                     }}
                                     className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-semibold hover:bg-gray-200 active:scale-95 transition-all text-sm"

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-import { Upload, X, Loader2, Camera, Calendar } from 'lucide-react';
+import { Upload, X, Loader2, Camera, Calendar, Crop } from 'lucide-react';
 
 import { CloudinaryService } from '../services/cloudinary';
 import clsx from 'clsx';
@@ -11,9 +11,10 @@ interface UploadViewProps {
     initialDate?: string;
     initialFile?: File;
     autoOpen?: boolean;
+    replacementId?: string;
 }
 
-export default function UploadView({ onUploadComplete, initialDate, initialFile, autoOpen }: UploadViewProps) {
+export default function UploadView({ onUploadComplete, initialDate, initialFile, autoOpen, replacementId }: UploadViewProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [isCropping, setIsCropping] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
@@ -28,7 +29,6 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
         if (initialFile) {
             setFile(initialFile);
             setPreview(URL.createObjectURL(initialFile));
-            setIsCropping(true);
         }
     }, [initialFile]);
 
@@ -44,7 +44,6 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
             const selectedFile = e.target.files[0];
             setFile(selectedFile);
             setPreview(URL.createObjectURL(selectedFile));
-            setIsCropping(true);
         }
     };
 
@@ -55,6 +54,17 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
         try {
             // Upload to Cloudinary
             await CloudinaryService.uploadImage(file, date, caption);
+
+            // If we are replacing an existing entry, delete the old one
+            if (replacementId) {
+                try {
+                    console.log("Deleting replaced entry:", replacementId);
+                    await CloudinaryService.deleteImage(replacementId);
+                } catch (deleteError) {
+                    console.error("Failed to delete old entry:", deleteError);
+                    // We don't block the success flow if deletion fails, but we log it.
+                }
+            }
 
             onUploadComplete();
         } catch (error) {
@@ -124,8 +134,18 @@ export default function UploadView({ onUploadComplete, initialDate, initialFile,
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {/* Image Preview */}
-                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-sm bg-gray-100 relative">
-                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                <div className="relative w-full bg-gray-100 rounded-2xl overflow-hidden group">
+                    <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-auto max-h-[60vh] object-contain mx-auto"
+                    />
+                    <button
+                        onClick={() => setIsCropping(true)}
+                        className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                    >
+                        <Crop size={20} />
+                    </button>
                 </div>
 
                 {/* Date Picker */}

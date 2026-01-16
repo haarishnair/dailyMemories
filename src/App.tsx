@@ -6,6 +6,7 @@ import TimelineView from './components/TimelineView';
 import BackupView from './components/BackupView';
 import HighlightView from './components/HighlightView';
 import CalendarView from './components/CalendarView';
+import type { DailyEntry } from './db';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'timeline' | 'calendar' | 'upload' | 'settings'>('timeline');
@@ -13,15 +14,25 @@ function App() {
   const [uploadDate, setUploadDate] = useState<string | undefined>(undefined);
   const [autoCamera, setAutoCamera] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | undefined>(undefined);
+  const [entryToReplace, setEntryToReplace] = useState<DailyEntry | undefined>(undefined);
 
   const handleQuickCapture = () => {
     setUploadDate(undefined);
+    setEntryToReplace(undefined);
     setAutoCamera(true);
     setActiveTab('upload');
   };
 
-  const handleDateSelect = (date: string) => {
-    setUploadDate(date);
+  const handleEditEntry = (entryOrDate: string | DailyEntry) => {
+    if (typeof entryOrDate === 'string') {
+      // Just adding a new photo for a specific date
+      setUploadDate(entryOrDate);
+      setEntryToReplace(undefined);
+    } else {
+      // Replacing a specific entry
+      setUploadDate(entryOrDate.date);
+      setEntryToReplace(entryOrDate);
+    }
     setAutoCamera(true);
     setActiveTab('upload');
   };
@@ -104,18 +115,20 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 text-gray-900">
-        {activeTab === 'timeline' && <TimelineView onQuickCapture={handleQuickCapture} onEditEntry={handleDateSelect} />}
-        {activeTab === 'calendar' && <CalendarView onDateSelect={handleDateSelect} />}
+        {activeTab === 'timeline' && <TimelineView onQuickCapture={handleQuickCapture} onEditEntry={handleEditEntry} />}
+        {activeTab === 'calendar' && <CalendarView onDateSelect={handleEditEntry} />}
         {activeTab === 'upload' && (
           <UploadView
             initialDate={uploadDate}
             initialFile={pendingFile}
             autoOpen={autoCamera}
+            replacementId={entryToReplace?.id as string}
             onUploadComplete={() => {
               setActiveTab('timeline');
               setAutoCamera(false);
               setPendingFile(undefined);
               setUploadDate(undefined);
+              setEntryToReplace(undefined);
             }}
           />
         )}

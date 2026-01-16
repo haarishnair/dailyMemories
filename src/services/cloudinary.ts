@@ -64,17 +64,17 @@ export const CloudinaryService = {
         // Extract year for folder organization
         const year = date.split('-')[0];
 
-        // Use deterministic ID with year folder to allow overwriting (replacing) photos for the same date
-        // Path: <preset_folder>/<year>/memory_<date>
-        // Note: The preset usually defines the root folder. Adding "/" here creates a subfolder.
-        formData.append('public_id', `${year}/memory_${date}`);
+        // Use deterministic ID with year folder, appending timestamp to allow multiple photos per day
+        // Path: <preset_folder>/<year>/memory_<date>_<timestamp>
+        const timestamp = Date.now();
+        formData.append('public_id', `${year}/memory_${date}_${timestamp}`);
 
         // Add Tags: "daily_memory" for filtering, "date_YYYY-MM-DD" for querying specific days
         const tags = ['daily_memory', `date_${date}`, `year_${year}`];
         formData.append('tags', tags.join(','));
 
         // Add Context: Store caption and date in metadata
-        formData.append('context', `caption=${caption}|date=${date}|timestamp=${Date.now()}`);
+        formData.append('context', `caption=${caption}|date=${date}|timestamp=${timestamp}`);
 
         try {
             await axios.post(BASE_URL, formData);
